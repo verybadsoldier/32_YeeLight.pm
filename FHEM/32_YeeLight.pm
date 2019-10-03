@@ -8,7 +8,6 @@
 
 # TODO
 # light functions: timer, schedules
-# scenes
 # software bridge (UDP): search request
 
 # help
@@ -42,6 +41,8 @@
 # 14 fixed some errors
 # 15 optional parameter for define: model
 # 16 fixed bugs blocking fhem when a lamp is not reachable, not able to set keepAlive to 0
+# 17 Fix devStateIcon
+# 18 Fix scenes
 
 # verbose level
 # 0: quit
@@ -150,7 +151,7 @@ YeeLight_Define
     
     my $model;
     $model = $hash->{MODEL} if defined($hash->{MODEL});
-    $attr{$name}{devStateIcon}  = '{my $power=ReadingsVal($name,"power","off");my $mode=ReadingsVal($name,"color_mode","RGB");if($power eq "off"){Color::devStateIcon($name,"rgb","rgb","power");}else{if($mode eq "RGB"){Color::devStateIcon($name,"rgb","rgb","bright");}elsif($mode eq "color temperature"){Color::devStateIcon($name,"rgb",undef,"bright");}}}' if (!defined($attr{$name}{devStateIcon}) && (!defined($model) || ($model eq "color") || ($model eq "stripe")));
+    $attr{$name}{devStateIcon}  = '{my $state=ReadingsVal($name,"state","disconnected");my $power=ReadingsVal($name,"power","off");my $mode=ReadingsVal($name,"color_mode","RGB");if($state eq "disconnected"){return ".*:light_exclamation:";}else{if($power eq "off"){Color::devStateIcon($name,"rgb","rgb","power");}else{if($mode eq "RGB"){Color::devStateIcon($name,"rgb","rgb","bright");}elsif($mode eq "color temperature"){Color::devStateIcon($name,"rgb",undef,"bright");}}}}' if (!defined($attr{$name}{devStateIcon}) && (!defined($model) || ($model eq "color") || ($model eq "stripe")));
     $attr{$name}{webCmd}        = 'rgb:bright:ct:rgb ffffff:rgb ff0000:rgb 00ff00:rgb 0000ff:on:off'                    if (!defined($attr{$name}{webCmd}) && (!defined($model) || ($model eq "color") || ($model eq "stripe")));
     $attr{$name}{widgetOverride}= 'bright:colorpicker,BRI,0,1,100 ct:colorpicker,CT,1700,10,6500 rgb:colorpicker,RGB'   if (!defined($attr{$name}{widgetOverride}) && (!defined($model) || ($model eq "color") || ($model eq "stripe")));
     $attr{$name}{devStateIcon}  = '{my $power=ReadingsVal($name,"power","off");if($power eq "off"){Color::devStateIcon($name,"dimmer",undef,"power");}else{Color::devStateIcon($name,"dimmer",undef,"bright")}}' if (!defined($attr{$name}{devStateIcon}) && defined($model) && ($model eq "mono" || $model eq "desklamp"));
@@ -620,6 +621,8 @@ YeeLight_SelectSetCmd
             && $args[0] ne "sunset"
             && $args[0] ne "sunrise"
             && $args[0] ne "happy_birthday"
+            && $args[0] ne "romance"
+            && $args[0] ne "candle"
             && $args[0] < 0
             && $args[0] > 9)
         {
@@ -627,23 +630,33 @@ YeeLight_SelectSetCmd
             $sceneList .= "sunrise ";
             $sceneList .= "sunset ";
             $sceneList .= "happy_birthday ";
+            $sceneList .= "romance ";
+            $sceneList .= "candle ";
             $sceneList .= "0-9 ";
             return "Unknown scene. Choose from: $sceneList";
         }
         
         my %scene;
-        $scene{sunset}{type}            = "start_cf";
-        $scene{sunset}{count}           = "3";
-        $scene{sunset}{action}          = "2";
-        $scene{sunset}{val}             = "50,2,2700,10,180000,2,1700,5,420000,1,16731136,1";
-        $scene{sunrise}{type}           = "start_cf";
-        $scene{sunrise}{count}          = "3";
-        $scene{sunrise}{action}         = "1";
-        $scene{sunrise}{val}            = "50,1,16731136,1,360000,2,1700,10,540000,2,2700,100";
-        $scene{happy_birthday}{type}    = "start_cf";
-        $scene{happy_birthday}{count}   = "0";
-        $scene{happy_birthday}{action}  = "1";
-        $scene{happy_birthday}{val}     = "2000,1,14438425,80,2000,1,14448670,80,2000,1,11153940,80";
+	$scene{sunset}{type}			= "start_cf";
+	$scene{sunset}{count}			= "3";
+	$scene{sunset}{action}			= "2";
+	$scene{sunset}{val}			= "50,2,2700,10,180000,2,1700,5,420000,1,16731136,1";
+	$scene{sunrise}{type}			= "start_cf";
+	$scene{sunrise}{count}			= "3";
+	$scene{sunrise}{action}			= "1";
+	$scene{sunrise}{val}			= "50,1,16731392,1,360000,2,1700,10,540000,2,2700,100";
+	$scene{happy_birthday}{type}		= "start_cf";
+	$scene{happy_birthday}{count}		= "0";
+	$scene{happy_birthday}{action}		= "1";
+	$scene{happy_birthday}{val}		= "1996,1,14438425,80,1996,1,14448670,80,1996,1,11153940,80";
+	$scene{romance}{type}			= "start_cf";
+	$scene{romance}{count}			= "0";
+	$scene{romance}{action}			= "1";
+	$scene{romance}{val}			= "4000,1,5838189,1,4000,1,6689834,1";
+	$scene{candle}{type}			= "start_cf";
+	$scene{candle}{count}			= "0";
+	$scene{candle}{action}			= "0";
+	$scene{candle}{val}			= "800,2,2700,50,800,2,2700,30,1200,2,2700,80,800,2,2700,60,1200,2,2700,90,2400,2,2700,50,1200,2,2700,80,800,2,2700,60,400,2,2700,70";
 
         my @newArgs;
         
@@ -1459,7 +1472,8 @@ YeeLightBridge_Parse
         my $newName = "YeeLight_".$sHash->{"id"};
         $newName    = "YeeLight_".$sHash->{"name"} if ($sHash->{"name"});
         
-        return "UNDEFINED ".$newName." YeeLight ".$sHash->{"model"}." ".$host." ".$sHash->{"id"};
+#        return "UNDEFINED ".$newName." YeeLight ".$sHash->{"model"}." ".$host." ".$sHash->{"id"};
+        return "UNDEFINED ".$newName." YeeLight ".$host." ".$sHash->{"model"};
     }   
 }
 
